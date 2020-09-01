@@ -1,0 +1,72 @@
+---
+layout: post
+title:  "Openssl Commands"
+date:   2019-01-06 00:05:38 +0100
+categories: Unix BASH Shell Cryptography
+---
+
+Openssl isn't the easiest tools to use or understand with the mission critical nature of what we require it to do its importat to understand what the correct params to pass into those obscure commands.
+[How to generate x509v3 Extensions http]: ://access.redhat.com/solutions/28965
+
+{% highlight bash %}
+# Display information contained in a cert
+openssl 509 -in certificate.pem -text -noout
+
+# Generate a private key
+openssl genrsa -out private-key.pem 2048
+
+# Generate CSR, the config contains the information, which will describe the certificate which is generated
+openssl req -config openssl.cnf -new -key private-key -out cert-request.csr
+
+# Take a look at the CSR 
+openssl req -noout -text -in cert-request.csr 
+
+# Generation of certicate
+# Note: DO NOT add -extfile extensions.txt when generating a replacement certifiate
+openssl x509 -req -in cert-request.csr -CA root-ca-certificate.pem -CAkey  -CAkey root-ca-private-key.key -CAcreateserial -out signed-certificate.pem -days 500 -sha256 -extfile extentions.txt v3_req
+
+# Convert certificate from pem to der format 
+openssl x509 -in certificate.pem -outform der -out certificate.der
+
+# Convert RSA public ket from pem to der format 
+openssl rsa -in certificate.pem -outform der -out certificate.der
+
+# Let's bundle the private key and the certificate into .p12
+opensll pkcs12 -export -out certificate.p12 -inkey certificate-private.key -in signing-certificate.pem
+
+# Extract out the private key from the p12 
+openssl pkcs12 -in certificate.p12 -nocerts -out prvate-key.pem
+
+# Extract out the private key from the p12 
+openssl pkcs12 -in certificate.p12 -clcerts -nokeys -out certificate.pem
+
+# When does a certificate expire
+openssl x509 -enddate -noout -in certificate.pem
+
+# I want to sign something with a private key
+openssl rsautl -sign -inkey private-key.pem -out signed-text.rsa -in  text-we-want-to-sign.txt
+
+# I want to verify that a certificate is the corresponding key of a private key. A single checksum will be the output
+(openssl x509 -nout -modulus certificate.pem | openssl md5;  openssl rsa -nout -modulus server.key | openssl md5) | uniq
+
+# Generation of a EC private key
+openssl ecparam -genkey -name prime256v1 -nout -out private.pem
+
+# Generate an EC public key 
+openssl ec -in private.pem -pubout -out public.pem
+
+# Sign something with an EC private key 
+openssl dgst -ecdsa-with-SHA1 -sign private.pem test.pdf > signature.bin
+
+# Verifiction of the of the signture
+openssl dgst -ecdsa-with-SHA1 -verify public.pem -signature  signature.bin  test.pdf
+
+# Using private key Bouncy Castle throws the following exception: java.lang.ClassCastException: org.bouncycastle.jcs.provider.JCERSAPrivateCrtKey cannot be cast to java.security.KeyPair
+openssl rsa -in private-key.pem -check > fixed-private-key.pem
+{% endhighlight %}
+
+Check out the [Jekyll docs][jekyll-docs] for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll’s GitHub repo][jekyll-gh]. If you have questions, you can ask them on [Jekyll Talk][jekyll-talk].
+
+[jekyll-docs]: http://jekyllrb.com/docs/home
+[jekyll-gh]:   https://github.com/jekyll/jekyll
+[jekyll-talk]: https://talk.jekyllrb.com/
